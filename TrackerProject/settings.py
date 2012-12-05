@@ -106,7 +106,7 @@ ROOT_URLCONF = 'TrackerProject.urls'
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'TrackerProject.wsgi.application'
 
-TEMPLATE_DIRS = ('/home/mguillech/projects/Ivan/Tracker/TrackerProject/templates',)
+TEMPLATE_DIRS = (os.path.join(os.path.dirname(ROOT_PATH), 'templates'),)
 
 TEMPLATE_CONTEXT_PROCESSORS += ('django.core.context_processors.request',)
 
