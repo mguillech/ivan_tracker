@@ -1,0 +1,24 @@
+{% if trainer_list %}
+<table cellpadding="10">
+    <thead>
+    <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Email</th>
+        <th>Cost per hour</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for trainer in trainer_list %}
+        <tr>
+            <td>{{ trainer.first_name }}</td>
+            <td>{{ trainer.last_name }}</td>
+            <td>{{ trainer.email }}</td>
+            <td>{{ trainer.trainer_cost|default:'NA' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No trainers found</p>
+{% endif %}

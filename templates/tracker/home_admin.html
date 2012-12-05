@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block extra_css %}
+    <style>
+        body {
+            padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+        }
+    </style>
+    <link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}css/fullcalendar.css' />
+    <link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}css/fullcalendar.print.css' media='print' />
+    <link href="{{ STATIC_URL }}css/jquery.timepicker.css" rel="stylesheet">
+{% endblock %}
+{% block extra_js %}
+    <script type='text/javascript'>
+
+        $(document).ready(function() {
+            $('.datepicker').datepicker();
+        });
+
+    </script>
+{% endblock %}
+{% block navbar %}
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </a>
+                <a class="brand" href="#">Ivan Activity Tracker</a>
+                <div class="nav-collapse collapse">
+                    <ul class="nav">
+                        <li{% if request.path == '/' %} class="active"{% endif %}><a href="{% url home %}">Home</a></li>
+                        <li{% if request.path == '/tracker/trainer/' %} class="active"{% endif %}><a href="{% url trainer-list %}">Trainer</a></li>
+                        <li{% if request.path == '/tracker/trainee/' %} class="active"{% endif %}><a href="{% url trainee-list %}">Trainee</a></li>
+                        <li{% if request.path == '/tracker/activity/' %} class="active"{% endif %}><a href="{% url activity-list %}">Activity</a></li>
+                        <li{% if request.path == '/tracker/report/' %} class="active"{% endif %}><a href="{% url report %}">Report</a></li>
+                        <li><a href="{% url logout %}">Logout</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1>Welcome, {{ user }} ({{ group }})</h1>
+        <h2>Please select one of the options in the navigation bar</h2>
+    </div>
+{% endblock %}
+{% block extra_js_body %}
+    <script src="{{ STATIC_URL }}js/jquery.validate.js"></script>
+{% endblock %}

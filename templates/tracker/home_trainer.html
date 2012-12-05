@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block extra_css %}
+    <style>
+        body {
+            padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+        }
+    </style>
+    <link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}css/fullcalendar.css' />
+    <link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}css/fullcalendar.print.css' media='print' />
+    <link href="{{ STATIC_URL }}css/jquery.timepicker.css" rel="stylesheet">
+{% endblock %}
+{% block extra_js %}
+    <script type='text/javascript'>
+
+        $(document).ready(function() {
+
+            var date = new Date();
+            var d = date.getDate();
+            var m = date.getMonth();
+            var y = date.getFullYear();
+
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                defaultView: 'agendaDay',
+                editable: true,
+                events: '{% url get-events %}',
+                loading: function(bool) {
+                    if (bool) $('.loading.show-calendar').show();
+                    else $('.loading.show-calendar').hide();
+                }
+            });
+
+            $('.datepicker').datepicker();
+            $('#create-event-form').validate();
+        });
+
+    </script>
+{% endblock %}
+{% block navbar %}
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </a>
+                <a class="brand" href="#">Ivan Activity Tracker</a>
+                <div class="nav-collapse collapse">
+                    <ul class="nav">
+                        <li class="active"><a href="#">Home</a></li>
+                        <li><a href="{% url logout %}">Logout</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1>Welcome, {{ user }} ({{ group }})</h1>
+        <div id='loading show-calendar' style='display:none'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div id='create-event-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Create</button></div>
+        <div id='calendar'></div>
+    </div> <!-- /container -->
+    {% include 'tracker/modals.html' %}
+{% endblock %}
+{% block extra_js_body %}
+    <script src="{{ STATIC_URL }}js/fullcalendar.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.timepicker.js"></script>
+    <script src="{{ STATIC_URL }}js/datepair.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.validate.js"></script>
+{% endblock %}

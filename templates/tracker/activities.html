@@ -1,0 +1,19 @@
+{% extends 'tracker/home_admin.html' %}
+{% block extra_js %}
+    <script type='text/javascript'>
+
+        $(document).ready(function() {
+            $('#create-activity-form').validate();
+            get_data('#activities', 'activities');
+        });
+
+    </script>
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <div id='loading show-activities' style='display:none'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div id='create-activity-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Add Activity</button></div>
+        <div id='activities'></div>
+    </div>
+    {% include 'tracker/add_activity_modal.html' %}
+{% endblock %}

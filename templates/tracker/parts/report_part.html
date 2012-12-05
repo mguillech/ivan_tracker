@@ -1,0 +1,32 @@
+{% if entries_list %}
+<table cellpadding="10">
+    <thead>
+    <tr>
+        <th>Trainer</th>
+        <th>Trainee</th>
+        <th>Activity</th>
+        <th>Start date/time</th>
+        <th>End date/time</th>
+        <th>Comment</th>
+        <th>Trainer Cost per Hour</th>
+        <th>Total Activity Cost</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for entry in entries_list %}
+        <tr>
+            <td>{{ entry.trainer.get_full_name }}</td>
+            <td>{{ entry.trainee.get_full_name }}</td>
+            <td>{{ entry.activity }}</td>
+            <td class="timestamp">{{ entry.start_timestamp }}</td>
+            <td class="timestamp">{{ entry.end_timestamp }}</td>
+            <td>{{ entry.comment|default:'No comments' }}</td>
+            <td>{{ entry.trainer.trainer_cost|default:'NA' }}</td>
+            <td>{{ entry.total_cost|default:'NA'}}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No activities found</p>
+{% endif %}

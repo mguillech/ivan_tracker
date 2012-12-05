@@ -1,0 +1,36 @@
+<div id="createModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <div id="create-event-alert"></div>
+        <h3 id="createModalLabel">Create Event</h3>
+    </div>
+    <div class="modal-body">
+        <div class='loading create-event'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class="modal-form">
+            <form id="create-event-form" method="POST" action="{% url add-event %}">
+                <fieldset>
+                    {% csrf_token %}
+                    <legend>Please fill out the information below</legend>
+                    <label for="trainee">Trainee</label>
+                    <select id="trainee" name="trainee" required></select>
+                    <label for="activity">Activity</label>
+                    <select id="activity" name="activity" required></select>
+                    <p id="activity-time" class="datepair" data-language="javascript">
+                        <label for="start">Activity start time</label>
+                        <input id="start" name="start-date" type="text" class="date start" data-nextfocus=".time.start" required>
+                        <input name="start-time" type="text" class="time start" autocomplete="off" data-nextfocus=".date.end" required>
+                        <label for="end">Activity End Time</label>
+                        <input id="end" name="end-date" type="text" class="date end" data-nextfocus=".time.end" required>
+                        <input name="end-time" type="text" class="time end" autocomplete="off" required>
+                    </p>
+                    <label for="comment">Comment (optional)</label>
+                    <textarea id="comment" name="comment"></textarea>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal">Close</button>
+        <button id="create-event" class="btn btn-primary">Create event</button>
+    </div>
+</div>

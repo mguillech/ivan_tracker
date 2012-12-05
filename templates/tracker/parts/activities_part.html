@@ -1,0 +1,18 @@
+{% if activity_list %}
+<table cellpadding="10">
+    <thead>
+    <tr>
+        <th>Name</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for activity in activity_list %}
+        <tr>
+            <td>{{ activity.name }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No activities found</p>
+{% endif %}

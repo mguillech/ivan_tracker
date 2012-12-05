@@ -1,0 +1,25 @@
+.error {
+    color:red;
+}
+
+#calendar {
+    width: 900px;
+    margin: 20px auto;
+}
+
+.loading {
+    width: 200px;
+    margin: 20px auto;
+}
+
+#create-event-btn {
+    float: left;
+}
+
+#create-user-btn, #create-activity-btn, #download-report-btn {
+    margin: 10px;
+}
+
+.loading.create-user, .loading.create-activity {
+    display: none;
+}
