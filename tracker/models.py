@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from tracker.utils import to_timestamp
 
 
@@ -53,3 +53,6 @@ class TrainerCost(models.Model):
     def __unicode__(self):
         return u'$%.2f' % self.cost
 
+
+for group in 'Trainer', 'Trainee':
+    _ = Group.objects.get_or_create(name=group)
