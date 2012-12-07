@@ -10,7 +10,7 @@ from django.contrib.auth.views import logout_then_login
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render_to_response, redirect, get_object_or_404
 from django.template import RequestContext
 from django.utils.decorators import method_decorator
 from django.utils.timezone import utc
@@ -99,6 +99,15 @@ def get_events(request):
     return HttpResponse(json.dumps(entries), content_type='application/json')
 
 @login_required
+def get_event(request, pk):
+    event = get_object_or_404(TimesheetEntry, pk=pk)
+    start = to_timestamp(event.start)
+    end = to_timestamp(event.end)
+    info = {'id': pk, 'title': unicode(event), 'trainer': event.trainer.pk, 'trainee': event.trainee.pk,
+            'activity': event.activity.pk, 'start': start, 'end': end, 'comment': event.comment }
+    return HttpResponse(json.dumps(info), content_type='application/json')
+
+@login_required
 def add_event(request):
     data = request.POST.get('data')
     tz_offset = request.POST.get('tz_offset')
@@ -120,6 +129,27 @@ def add_event(request):
         TimesheetEntry.objects.create(trainer=trainer, trainee=trainee, activity=activity, start=start, end=end,
             comment=comment)
         return HttpResponse(json.dumps({'status': True, 'msg': 'Event created successfully.'}),
+            content_type='application/json')
+    else:
+        return HttpResponseBadRequest
+
+@login_required
+def update_event(request):
+    data = request.POST.get('data')
+    tz_offset = request.POST.get('tz_offset')
+    if data and tz_offset:
+        data = json.loads(data)
+        input_getter = itemgetter('name', 'value')
+        edit = dict(input_getter(i) for i in data)
+        trainee = User.objects.get(pk=edit['trainee'])
+        activity = Activity.objects.get(pk=edit['activity'])
+        start = dateutil_parser.parse('%s %s %s' % (edit['start-date'], edit['start-time'],
+                                                    tz_offset)).astimezone(utc)
+        end = dateutil_parser.parse('%s %s %s' % (edit['end-date'], edit['end-time'], tz_offset)).astimezone(utc)
+        comment = edit['comment']
+        TimesheetEntry.objects.filter(pk=edit['event-pk']).update(trainee=trainee, activity=activity, start=start,
+            end=end, comment=comment)
+        return HttpResponse(json.dumps({'status': True, 'msg': 'Event successfully edited.'}),
             content_type='application/json')
     else:
         return HttpResponseBadRequest
@@ -207,9 +237,11 @@ def report_download(request):
     sheet.write(0, 3, u'Activity', style=default_style)
     sheet.write(0, 4, u'Start date/time (UTC)', style=default_style)
     sheet.write(0, 5, u'End date/time (UTC)', style=default_style)
-    sheet.write(0, 6, u'Trainer Cost per hour', style=default_style)
-    sheet.write(0, 7, u'Total Activity Cost', style=default_style)
-    values_list = TimesheetEntry.objects.all().values_list('id', 'trainer', 'trainee', 'activity', 'start', 'end')
+    sheet.write(0, 6, u'Comments', style=default_style)
+    sheet.write(0, 7, u'Trainer Cost per hour', style=default_style)
+    sheet.write(0, 8, u'Total Activity Cost', style=default_style)
+    values_list = TimesheetEntry.objects.all().values_list('id', 'trainer', 'trainee', 'activity', 'start', 'end',
+        'comment')
 
     for row, rowdata in enumerate(values_list):
         trainer_cost = total_cost = 'NA'

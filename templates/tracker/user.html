@@ -3,7 +3,11 @@
     <script type='text/javascript'>
 
         $(document).ready(function() {
-            $('#create-user-form').validate();
+            $('#create-user-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
             get_data('#{{ group|lower }}s', '{{ group|lower }}s');
         });
 

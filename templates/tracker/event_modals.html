@@ -1,0 +1,74 @@
+<div id="createModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <div id="create-event-alert"></div>
+        <h3 id="createModalLabel">Create Event</h3>
+    </div>
+    <div class="modal-body">
+        <div class='loading create-event'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class="modal-form">
+            <form id="create-event-form" method="POST" action="{% url add-event %}">
+                <fieldset>
+                    {% csrf_token %}
+                    <legend>Please fill out the information below</legend>
+                    <label for="add-trainee">Trainee</label>
+                    <select id="add-trainee" name="trainee" required></select>
+                    <label for="add-activity">Activity</label>
+                    <select id="add-activity" name="activity" required></select>
+                    <p id="create-activity-time" class="datepair" data-language="javascript">
+                        <label for="add_start">Activity start time</label>
+                        <input id="add_start" name="start-date" type="text" class="date start" data-nextfocus="#create-event-form .time.start" required>
+                        <input name="start-time" type="text" class="time start" autocomplete="off" data-nextfocus="#create-event-form .date.end" required>
+                        <label for="add_end">Activity End Time</label>
+                        <input id="add_end" name="end-date" type="text" class="date end" data-nextfocus="#create-event-form .time.end" required>
+                        <input id="add_end_time" name="end-time" type="text" class="time end required checknegativedt" autocomplete="off" required>
+                    </p>
+                    <label for="add-comment">Comment (optional)</label>
+                    <textarea id="add-comment" name="comment"></textarea>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal">Close</button>
+        <button id="create-event" class="btn btn-primary">Create event</button>
+    </div>
+</div>
+
+<div id="editModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <div id="edit-event-alert"></div>
+        <h3 id="editModalLabel">Edit Event</h3>
+    </div>
+    <div class="modal-body">
+        <div class='loading edit-event'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class="modal-form">
+            <form id="edit-event-form" method="POST" action="{% url update-event %}">
+                <fieldset>
+                    {% csrf_token %}
+                    <input id="event-pk" type="hidden" name="event-pk" />
+                    <legend>Please fill out the information below</legend>
+                    <label for="edit-trainee">Trainee</label>
+                    <select id="edit-trainee" name="trainee" required></select>
+                    <label for="edit-activity">Activity</label>
+                    <select id="edit-activity" name="activity" required></select>
+                    <p id="edit-activity-time" class="datepair" data-language="javascript">
+                        <label for="edit-start-date">Activity start time</label>
+                        <input id="edit-start-date" name="start-date" type="text" class="date start" data-nextfocus="#edit-event-form .time.start" required>
+                        <input id="edit-start-time" name="start-time" type="text" class="time start" autocomplete="off" data-nextfocus="#edit-event-form .date.end" required>
+                        <label for="edit-end-date">Activity End Time</label>
+                        <input id="edit-end-date" name="end-date" type="text" class="date end" data-nextfocus="#edit-event-form .time.end" required>
+                        <input id="edit-end-time" name="end-time" type="text" class="time end required checknegativedt" autocomplete="off" required>
+                    </p>
+                    <label for="edit-comment">Comment (optional)</label>
+                    <textarea id="edit-comment" name="comment"></textarea>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal">Close</button>
+        <button id="edit-event" class="btn btn-primary">Update event</button>
+    </div>
+</div>

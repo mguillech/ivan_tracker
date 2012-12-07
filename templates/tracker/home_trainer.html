@@ -31,11 +31,28 @@
                 loading: function(bool) {
                     if (bool) $('.loading.show-calendar').show();
                     else $('.loading.show-calendar').hide();
+                },
+                eventRender: function(event, element) {
+                    element.bind('dblclick', function() {
+                        editEventModal(event, updateEvent);
+                    });
                 }
             });
 
+            $.validator.addMethod('checknegativedt', negativeEvent,
+                    "End date-time can't be set behind the start date-time");
             $('.datepicker').datepicker();
-            $('#create-event-form').validate();
+            $('#create-event-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
+
+            $('#edit-event-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
         });
 
     </script>
@@ -67,7 +84,7 @@
         <div id='create-event-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Create</button></div>
         <div id='calendar'></div>
     </div> <!-- /container -->
-    {% include 'tracker/modals.html' %}
+    {% include 'tracker/event_modals.html' %}
 {% endblock %}
 {% block extra_js_body %}
     <script src="{{ STATIC_URL }}js/fullcalendar.js"></script>

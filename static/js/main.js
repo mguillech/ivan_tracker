@@ -22,7 +22,6 @@ function _append_activity(select, obj) {
 }
 
 $('#create-event-btn').bind('click', function() {
-    $('#create-modal').modal();
     $.ajax({
         url: '/tracker/get-create-data/',
         method: 'POST',
@@ -30,10 +29,10 @@ $('#create-event-btn').bind('click', function() {
             $('.loading.create-event').hide();
             var trainees = $.parseJSON(data.trainees);
             var activities = $.parseJSON(data.activities);
-            $('#trainee').empty();
-            $('#activity').empty();
-            _append_user($('#trainee'), trainees);
-            _append_activity($('#activity'), activities);
+            $('#add-trainee').empty();
+            $('#add-activity').empty();
+            _append_user($('#add-trainee'), trainees);
+            _append_activity($('#add-activity'), activities);
         }
     });
     $('input[type=text]').val('');
@@ -45,11 +44,11 @@ $('.datepair input.time.start').on('changeTime', function() {
     end_input.timepicker('option', 'minTime', start_time);
 });
 
-$('#create-event').click(function() {
-    $('#create-event-form').submit();
+$('#create-event').bind('click', function() {
+    return $('#create-event-form').submit();
 });
 
-$('#create-event-form').submit(function() {
+$('#create-event-form').bind('ajaxSubmit', function() {
    form = $(this);
    csrftoken = $('input[name=csrfmiddlewaretoken]').val();
    data = JSON.stringify(form.serializeArray().slice(1));
@@ -79,7 +78,7 @@ $('input').change(function (e) {
     input = $(e.target || e.srcElement);
     nextfocus = input.attr('data-nextfocus');
     if (nextfocus)
-        nextfocus_elem = $('input' + nextfocus).focus();
+        $(nextfocus).focus();
 });
 
 function create_alert(title, body) {
@@ -107,10 +106,10 @@ $('.modal').bind('close', function() {
 });
 
 $('#create-user').click(function() {
-    $('#create-user-form').submit();
+    return $('#create-user-form').submit();
 });
 
-$('#create-user-form').submit(function() {
+$('#create-user-form').bind('ajaxSubmit', function() {
     form = $(this);
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
     data = JSON.stringify(form.serializeArray().slice(1));
@@ -156,7 +155,7 @@ $('#create-activity').click(function() {
     $('#create-activity-form').submit();
 });
 
-$('#create-activity-form').submit(function() {
+$('#create-activity-form').bind('ajaxSubmit', function() {
     form = $(this);
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
     data = JSON.stringify(form.serializeArray().slice(1));
@@ -207,3 +206,81 @@ function convert_datetimes() {
         elem.text(formatDate(dt));
     });
 }
+
+function negativeEvent(value, element) {
+    var parent = $(element).parent('p');
+    var sd = parent.find('input.start.date');
+    var ed = parent.find('input.end.date');
+    var st = parent.find('input.start.time');
+
+    if (sd.val() == ed.val()) {
+        return !($(element).timepicker('getSecondsFromMidnight') < st.timepicker('getSecondsFromMidnight'));
+    }
+    return true;
+}
+
+function editEventModal(event, callback) {
+    $('#editModal').modal();
+    $.ajax({
+        url: '/tracker/get-create-data/',
+        method: 'POST',
+        success: function(data) {
+            $('.loading.edit-event').hide();
+            var trainees = $.parseJSON(data.trainees);
+            var activities = $.parseJSON(data.activities);
+            $('#edit-trainee').empty();
+            $('#edit-activity').empty();
+            _append_user($('#edit-trainee'), trainees);
+            _append_activity($('#edit-activity'), activities);
+            callback(event);
+        }
+    });
+    $('input[type=text]').val('');
+}
+
+function updateEvent(event) {
+    $.ajax({
+        url: '/tracker/get-event/' + event.id + '/',
+        method: 'POST',
+        success: function(data) {
+            $('#edit-trainee').find('option[value=' + data.trainee + ']').attr('selected', 'selected');
+            $('#edit-activity').find('option[value=' + data.activity + ']').attr('selected', 'selected');
+            $('#edit-start-date').datepicker('setDate', new Date(data.start * 1000));
+            $('#edit-start-time').timepicker('setTime', new Date(data.start * 1000));
+            $('#edit-end-date').datepicker('setDate', new Date(data.end * 1000));
+            $('#edit-end-time').timepicker('setTime', new Date(data.end * 1000));
+            $('#edit-comment').val(data.comment);
+            $('#event-pk').attr('value', data.id);
+        }
+    });
+}
+
+$('#edit-event').bind('click', function() {
+    return $('#edit-event-form').submit();
+});
+
+$('#edit-event-form').bind('ajaxSubmit', function() {
+    form = $(this);
+    csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+    data = JSON.stringify(form.serializeArray().slice(1));
+    tz_offset = new Date().getTimezoneOffset() / -60;
+    $.ajax({
+        url: form.attr('action'),
+        type: form.attr('method'),
+        data: {'csrfmiddlewaretoken': csrftoken, 'data': data, 'tz_offset': tz_offset},
+        beforeSend: function () {
+            $('.loading.edit-event').show();
+        },
+        success: function(response) {
+            $('.loading.edit-event').hide();
+            if (response.status != false) {
+                $('#editModal').trigger('close');
+                $('#calendar').fullCalendar('refetchEvents');
+            } else {
+                msg = response.msg;
+                $('#edit-event-alert').html(create_alert('Edit event error!', msg));
+            }
+        }
+    });
+    return false;
+});

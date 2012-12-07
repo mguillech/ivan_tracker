@@ -3,7 +3,11 @@
     <script type='text/javascript'>
 
         $(document).ready(function() {
-            $('#create-activity-form').validate();
+            $('#create-activity-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
             get_data('#activities', 'activities');
         });
 

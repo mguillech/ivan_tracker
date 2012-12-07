@@ -99,10 +99,10 @@ $(function() {
 				newDelta = 0;
 
 				if (target.hasClass('start')) {
-					end.val(startDate.format('m/d/Y'));
+					end.val(startDate.format('Y-m-d'));
 					end.datepicker('update');
 				} else if (target.hasClass('end')) {
-					start.val(endDate.format('m/d/Y'));
+					start.val(endDate.format('Y-m-d'));
 					start.datepicker('update');
 				}
 			}
