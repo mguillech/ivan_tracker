@@ -18,10 +18,13 @@
                     <p id="create-activity-time" class="datepair" data-language="javascript">
                         <label for="add_start">Activity start time</label>
                         <input id="add_start" name="start-date" type="text" class="date start" data-nextfocus="#create-event-form .time.start" required>
-                        <input name="start-time" type="text" class="time start" autocomplete="off" data-nextfocus="#create-event-form .date.end" required>
-                        <label for="add_end">Activity End Time</label>
-                        <input id="add_end" name="end-date" type="text" class="date end" data-nextfocus="#create-event-form .time.end" required>
-                        <input id="add_end_time" name="end-time" type="text" class="time end required checknegativedt" autocomplete="off" required>
+                        <input name="start-time" type="text" class="time start time12h" autocomplete="off" data-nextfocus="#create-event-form .date.end" required>
+                        <label for="add_end">Activity End Time (takes more precedence over repeat)</label>
+                        <input id="add_end" name="end-date" type="text" class="date end end-group" data-nextfocus="#create-event-form .time.end" required>
+                        <input id="add_end_time" name="end-time" type="text" class="time end checknegativedt time12h" autocomplete="off" required>
+                        <label for="repeat">Repeat for </label>
+                        <input id="repeat" name="repeat" type="text" class="number end-group"/>
+                        <span>&nbsp;week(s)</span>
                     </p>
                     <label for="add-comment">Comment (optional)</label>
                     <textarea id="add-comment" name="comment"></textarea>

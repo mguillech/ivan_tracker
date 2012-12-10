@@ -109,6 +109,18 @@ def get_event(request, pk):
 
 @login_required
 def add_event(request):
+    def _add_entry():
+        TimesheetEntry.objects.create(trainer=trainer, trainee=trainee, activity=activity, start=start, end=end,
+            comment=comment)
+
+    def _check_end(should_return=True):
+        if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)), trainer=trainer):
+            if should_return:
+                return HttpResponse(json.dumps({'status': False,
+                        'msg': 'Start or end date/time overlaps an existing event. Try setting other dates/times.'}),
+                    content_type='application/json')
+            return should_return
+
     data = request.POST.get('data')
     tz_offset = request.POST.get('tz_offset')
     if data and tz_offset:
@@ -118,17 +130,28 @@ def add_event(request):
         trainer = request.user
         trainee = User.objects.get(pk=create['trainee'])
         activity = Activity.objects.get(pk=create['activity'])
-        start = dateutil_parser.parse('%s %s %s' % (create['start-date'], create['start-time'],
+        start = original_start = dateutil_parser.parse('%s %s %s' % (create['start-date'], create['start-time'],
                                                     tz_offset)).astimezone(utc)
-        end = dateutil_parser.parse('%s %s %s' % (create['end-date'], create['end-time'], tz_offset)).astimezone(utc)
+        end = original_end = dateutil_parser.parse('%s %s %s' % (create['end-date'], create['end-time'],
+                                                  tz_offset)).astimezone(utc)
+        repeat = create.get('repeat')
         comment = create['comment']
-        if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)), trainer=trainer):
-            return HttpResponse(json.dumps({'status': False,
-                                    'msg': 'Start time overlaps an existing event. Try setting other dates/times.'}),
-                content_type='application/json')
-        TimesheetEntry.objects.create(trainer=trainer, trainee=trainee, activity=activity, start=start, end=end,
-            comment=comment)
-        return HttpResponse(json.dumps({'status': True, 'msg': 'Event created successfully.'}),
+        msg = 'Event(s) created successfully.'
+        _check_end()
+        _add_entry()
+        if repeat:
+            if not repeat.isdigit():
+                return HttpResponse(json.dumps({'status': False, 'msg': 'Supplied number of weeks is invalid.'}),
+                    content_type='application/json')
+            repeat = int(repeat)
+            days = [ i for i in xrange(7, repeat * 7 + 1,  7) ]
+            for day in days:
+                start = original_start + datetime.timedelta(days=day)
+                end = original_end + datetime.timedelta(days=day)
+                if _check_end(False) is False:
+                    msg += ' However, one of the events overlapped an existing one and it could not be created again.'
+                _add_entry()
+        return HttpResponse(json.dumps({'status': True, 'msg': msg}),
             content_type='application/json')
     else:
         return HttpResponseBadRequest
