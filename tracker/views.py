@@ -215,6 +215,51 @@ def add_user(request):
         return HttpResponseBadRequest()
 
 @login_required
+def get_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    info = {'pk': user.pk, 'username': user.username, 'first_name': user.first_name,
+            'last_name': user.last_name, 'email': user.email,
+            'group': unicode(user.groups.get())}
+    if unicode(user.groups.get()).lower() == 'trainer':
+        info.update({'cost': user.trainer_cost.cost})
+    return HttpResponse(json.dumps(info), content_type='application/json')
+
+@login_required
+def delete_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    user.delete()
+    return HttpResponse(json.dumps({'status': True}), content_type='application/json')
+
+@login_required
+def update_user(request):
+    data = request.POST.get('data')
+    if data:
+        data = json.loads(data)
+        input_getter = itemgetter('name', 'value')
+        edit = dict(input_getter(i) for i in data)
+        user = get_object_or_404(User, pk=edit['user-pk'])
+        group = user.groups.get()
+        form = UserForm(edit, instance=user)
+        form.errors.pop('password')
+        if form.is_valid():
+            user = form.save(commit=False)
+            password = edit['password']
+            if password != u'':
+                user.set_password(password)
+            user.save()
+            cost = edit.get('cost')
+            if cost and group.name == 'Trainer':    # Trainer
+                _ = TrainerCost.objects.filter(user=user).update(cost=float(cost))
+            status = True
+            message = u'%s successfully updated.' % group
+        else:
+            status = False
+            message = u'There was an error while updating your %s user.' % group
+        return HttpResponse(json.dumps({'status': status, 'msg': message}), content_type='application/json')
+    else:
+        return HttpResponseBadRequest()
+
+@login_required
 def trainer_list(request):
     return user_view(request, 'Trainer')
 

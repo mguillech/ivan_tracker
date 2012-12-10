@@ -1,6 +1,6 @@
 function _create_option(value, html) {
     var option = $('<option/>');
-    option.attr('value', value);
+    option.val(value);
     option.html(html);
     return option;
 }
@@ -250,7 +250,7 @@ function updateEvent(event) {
             $('#edit-end-date').datepicker('setDate', new Date(data.end * 1000));
             $('#edit-end-time').timepicker('setTime', new Date(data.end * 1000));
             $('#edit-comment').val(data.comment);
-            $('#event-pk').attr('value', data.id);
+            $('#event-pk').val(data.id);
         }
     });
 }
@@ -279,6 +279,86 @@ $('#edit-event-form').bind('ajaxSubmit', function() {
             } else {
                 msg = response.msg;
                 $('#edit-event-alert').html(create_alert('Edit event error!', msg));
+            }
+        }
+    });
+    return false;
+});
+
+function setupUserHandler() {
+    $('.edit-user').bind('click', function() {
+        $('#editModal').modal();
+        var user_pk = $(this).attr('data-pk');
+        var group = $(this).attr('data-group');
+        $.ajax({
+            url: '/tracker/get-user/' + user_pk + '/',
+            method: 'POST',
+            beforeSend: function () {
+                $('.loading.edit-user').show();
+            },
+            success: function(data) {
+                $('.loading.edit-user').hide();
+                var edit_form = $('#edit-user-form');
+                edit_form.find('#id_username').val(data.username);
+                edit_form.find('#id_password').removeAttr('required minlength');
+                edit_form.find('#id_first_name').val(data.first_name);
+                edit_form.find('#id_last_name').val(data.last_name);
+                edit_form.find('#id_email').val(data.email);
+                edit_form.find('#user-pk').val(data.pk);
+                edit_form.find('#group').val(data.group);
+                if (data.group.toLowerCase() == 'trainee')
+                    edit_form.find('#trainer-cost').hide();
+                else
+                    edit_form.find('#edit-cost').val(data.cost);
+            }
+        });
+    });
+
+    $('#delete-user').bind('click', function() {
+        confirmed = confirm('Are you sure that you want to delete this user?');
+        if (confirmed) {
+            var edit_form = $('#edit-user-form');
+            var user_pk = edit_form.find('#user-pk').val();
+            var group = edit_form.find('#group').val().toLowerCase();
+            $.ajax({
+                url: '/tracker/delete-user/' + user_pk + '/',
+                beforeSend: function () {
+                    $('.loading.edit-user').show();
+                },
+                success: function(data) {
+                    $('.loading.edit-user').hide();
+                    $('#editModal').trigger('close');
+                    get_data('#' + group + 's', group + 's');
+                }
+            });
+        }
+    });
+}
+
+$('#edit-user').bind('click', function() {
+    return $('#edit-user-form').submit();
+});
+
+$('#edit-user-form').bind('ajaxSubmit', function() {
+    form = $(this);
+    csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+    data = JSON.stringify(form.serializeArray().slice(1));
+    group = $('#edit-user-form').find('#group').val().toLowerCase();
+    $.ajax({
+        url: form.attr('action'),
+        type: form.attr('method'),
+        data: {'csrfmiddlewaretoken': csrftoken, 'data': data},
+        beforeSend: function () {
+            $('.loading.edit-user').show();
+        },
+        success: function(response) {
+            $('.loading.edit-user').hide();
+            if (response.status != false) {
+                $('#editModal').trigger('close');
+                get_data('#' + group + 's', group + 's');
+            } else {
+                msg = response.msg;
+                $('#edit-user-alert').html(create_alert('Edit user error!', msg));
             }
         }
     });

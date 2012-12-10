@@ -8,7 +8,14 @@
                     $(form).trigger('ajaxSubmit');
                 }
             });
-            get_data('#{{ group|lower }}s', '{{ group|lower }}s');
+
+            $('#edit-user-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
+
+            get_data('#{{ group|lower }}s', '{{ group|lower }}s', setupUserHandler);
         });
 
     </script>
@@ -19,5 +26,5 @@
         <div id='create-user-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Add {{ group }}</button></div>
         <div id='{{ group|lower }}s'></div>
     </div>
-    {% include 'tracker/add_user_modal.html' %}
+    {% include 'tracker/user_modals.html' %}
 {% endblock %}
