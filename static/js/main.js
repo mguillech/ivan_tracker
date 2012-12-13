@@ -39,9 +39,11 @@ $('#create-event-btn').bind('click', function() {
 });
 
 $('.datepair input.time.start').on('changeTime', function() {
-    var start_time = $('.datepair input.time.start').val();
-    var end_input = $('.datepair input.time.end');
+    var start_time_input = $(this);
+    var start_time = start_time_input.val();
+    var end_input = start_time_input.siblings('input.time.end');
     end_input.timepicker('option', 'minTime', start_time);
+    end_input.timepicker('option', 'maxTime', '11:30pm');
 });
 
 $('#create-event').bind('click', function() {

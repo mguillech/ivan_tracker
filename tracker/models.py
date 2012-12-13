@@ -14,8 +14,9 @@ class Activity(models.Model):
 
 
 class TimesheetEntry(models.Model):
-    trainer = models.ForeignKey(User, related_name='timesheet_trainer')
-    trainee = models.ForeignKey(User, related_name='timesheet_trainee')
+    trainer = models.CharField(max_length=200)
+    trainee = models.CharField(max_length=200)
+    trainer_cost = models.FloatField()
     activity = models.ForeignKey(Activity, related_name='timesheet')
     start = models.DateTimeField()
     end = models.DateTimeField()
@@ -32,15 +33,18 @@ class TimesheetEntry(models.Model):
         return to_timestamp(self.end)
 
     def __unicode__(self):
-        return u'%s (Trainer) - %s (Trainee) - %s - Comment: %s' % (self.trainer.get_full_name(),
-                                                                    self.trainee.get_full_name(),
-                                                                    self.activity, self.comment or 'No comment')
+        return u'%s (Trainer) - %s (Trainee) - %s - Comment: %s' % (self.trainer, self.trainee, self.activity,
+                                                                    self.comment or 'No comment')
+
+    @property
+    def hourly_cost(self):
+        if self.trainer_cost:
+            return u'$%.2f' % self.trainer_cost
 
     @property
     def total_cost(self):
-        if hasattr(self.trainer, 'trainer_cost'):
-            trainer_cost = self.trainer.trainer_cost
-            return u'$%.2f' % float(trainer_cost.cost * (self.end - self.start).total_seconds() / 3600)
+        if self.trainer_cost:
+            return u'$%.2f' % float(self.trainer_cost * (self.end - self.start).total_seconds() / 3600)
 
     class Meta:
         verbose_name_plural = 'Timesheet Entries'

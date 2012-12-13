@@ -86,13 +86,14 @@ def get_events(request):
     start, end = request.GET.get('start'), request.GET.get('end')
     try:
         group = request.user.groups.get().name
-    except User.DoesNotExist:
-        return HttpResponseBadRequest()     # Admins don't hold events
+        kwargs = {group.lower(): request.user.get_full_name()}
+    except Group.DoesNotExist:
+        kwargs = {}     # Admins
     if start:
         start = datetime.datetime.fromtimestamp(float(start), utc)
     if end:
         end = datetime.datetime.fromtimestamp(float(end), utc)
-    kwargs = {group.lower(): request.user, 'start__gte': start, 'end__lte': end}
+    kwargs.update({'start__gte': start, 'end__lte': end})
     entries = [ {'id': entry.pk, 'title': unicode(entry), 'allDay': False, 'start': to_timestamp(entry.start),
                  'end': to_timestamp(entry.end) }
                 for entry in TimesheetEntry.objects.filter(**kwargs) ]
@@ -103,18 +104,19 @@ def get_event(request, pk):
     event = get_object_or_404(TimesheetEntry, pk=pk)
     start = to_timestamp(event.start)
     end = to_timestamp(event.end)
-    info = {'id': pk, 'title': unicode(event), 'trainer': event.trainer.pk, 'trainee': event.trainee.pk,
+    info = {'id': pk, 'title': unicode(event), 'trainer': event.trainer, 'trainee': event.trainee,
             'activity': event.activity.pk, 'start': start, 'end': end, 'comment': event.comment }
     return HttpResponse(json.dumps(info), content_type='application/json')
 
 @login_required
 def add_event(request):
     def _add_entry():
-        TimesheetEntry.objects.create(trainer=trainer, trainee=trainee, activity=activity, start=start, end=end,
-            comment=comment)
+        TimesheetEntry.objects.create(trainer=trainer.get_full_name(), trainee=trainee.get_full_name(),
+            trainer_cost=trainer.trainer_cost.cost, activity=activity, start=start, end=end, comment=comment)
 
     def _check_end(should_return=True):
-        if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)), trainer=trainer):
+        if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)),
+            trainer=trainer.get_full_name()):
             if should_return:
                 return HttpResponse(json.dumps({'status': False,
                         'msg': 'Start or end date/time overlaps an existing event. Try setting other dates/times.'}),
@@ -170,8 +172,8 @@ def update_event(request):
                                                     tz_offset)).astimezone(utc)
         end = dateutil_parser.parse('%s %s %s' % (edit['end-date'], edit['end-time'], tz_offset)).astimezone(utc)
         comment = edit['comment']
-        TimesheetEntry.objects.filter(pk=edit['event-pk']).update(trainee=trainee, activity=activity, start=start,
-            end=end, comment=comment)
+        TimesheetEntry.objects.filter(pk=edit['event-pk']).update(trainee=trainee.get_full_name(),
+            trainer_cost=request.user.trainer_cost.cost, activity=activity, start=start, end=end, comment=comment)
         return HttpResponse(json.dumps({'status': True, 'msg': 'Event successfully edited.'}),
             content_type='application/json')
     else:
@@ -240,7 +242,8 @@ def update_user(request):
         user = get_object_or_404(User, pk=edit['user-pk'])
         group = user.groups.get()
         form = UserForm(edit, instance=user)
-        form.errors.pop('password')
+        if 'password' in form.errors:
+            form.errors.pop('password')
         if form.is_valid():
             user = form.save(commit=False)
             password = edit['password']
@@ -316,14 +319,12 @@ def report_download(request):
         for col, val in enumerate(rowdata):
             if col == 0:
                 entry = TimesheetEntry.objects.get(pk=val)
+                trainer_cost = entry.hourly_cost or 'NA'
                 total_cost = entry.total_cost or 'NA'
-            if col in (1, 2):
-                user = User.objects.get(pk=val)
-                val = user.get_full_name()
-                if hasattr(user, 'trainer_cost'):
-                    trainer_cost = '$%.2f' % user.trainer_cost.cost
             if col == 3:
                 val = unicode(Activity.objects.get(pk=val))
+            if col == 6:
+                val = entry.comment or 'No comments'
             if isinstance(val, datetime.datetime):
                 style = datetime_style
                 if val.tzinfo:

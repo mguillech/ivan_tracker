@@ -11,8 +11,22 @@
 {% endblock %}
 {% block extra_js %}
     <script type='text/javascript'>
-
         $(document).ready(function() {
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                defaultView: 'agendaDay',
+                editable: false,
+                events: '{% url get-events %}',
+                loading: function(bool) {
+                    if (bool) $('.loading.show-calendar').show();
+                    else $('.loading.show-calendar').hide();
+                }
+            });
+
             $('.datepicker').datepicker();
         });
 
@@ -45,9 +59,11 @@
 {% block content %}
     <div class="container">
         <h1>Welcome, {{ user }} ({{ group }})</h1>
-        <h2>Please select one of the options in the navigation bar</h2>
+        <div id='loading show-calendar' style='display:none'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div id='calendar'></div>
     </div>
 {% endblock %}
 {% block extra_js_body %}
+    <script src="{{ STATIC_URL }}js/fullcalendar.js"></script>
     <script src="{{ STATIC_URL }}js/jquery.validate.js"></script>
 {% endblock %}

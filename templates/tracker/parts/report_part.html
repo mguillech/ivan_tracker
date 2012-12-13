@@ -15,13 +15,13 @@
     <tbody>
     {% for entry in entries_list %}
         <tr>
-            <td>{{ entry.trainer.get_full_name }}</td>
-            <td>{{ entry.trainee.get_full_name }}</td>
+            <td>{{ entry.trainer }}</td>
+            <td>{{ entry.trainee }}</td>
             <td>{{ entry.activity }}</td>
             <td class="timestamp">{{ entry.start_timestamp }}</td>
             <td class="timestamp">{{ entry.end_timestamp }}</td>
             <td>{{ entry.comment|default:'No comments' }}</td>
-            <td>{{ entry.trainer.trainer_cost|default:'NA' }}</td>
+            <td>{{ entry.hourly_cost|default:'NA' }}</td>
             <td>{{ entry.total_cost|default:'NA'}}</td>
         </tr>
     {% endfor %}
