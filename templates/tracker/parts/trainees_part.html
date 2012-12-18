@@ -11,10 +11,10 @@
     <tbody>
     {% for trainee in trainee_list %}
         <tr>
-            <td><a href="#" class="edit-user" data-pk="{{ trainee.pk }}" data-group="trainees">{{ trainee.username }}</a></td>
-            <td>{{ trainee.first_name }}</td>
-            <td>{{ trainee.last_name }}</td>
-            <td>{{ trainee.email }}</td>
+            <td><a href="#" class="edit-user" data-pk="{{ trainee.pk }}" data-group="trainees">{{ trainee.user.username }}</a></td>
+            <td>{{ trainee.user.first_name }}</td>
+            <td>{{ trainee.user.last_name }}</td>
+            <td>{{ trainee.user.email }}</td>
         </tr>
     {% endfor %}
     </tbody>

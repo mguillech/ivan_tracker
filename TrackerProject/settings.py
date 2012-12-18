@@ -154,3 +154,5 @@ LOGGING = {
 }
 
 LOGIN_URL = '/tracker/login/'
+
+AUTH_PROFILE_MODULE = 'tracker.UserProfile'

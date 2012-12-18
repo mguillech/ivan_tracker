@@ -1,6 +1,17 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
+from django.db.models.signals import post_save, pre_delete
 from tracker.utils import to_timestamp
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User)
+    group = models.CharField(max_length=200)
+    cost = models.FloatField(null=True, blank=True)
+    color = models.CharField(max_length=15)
+
+    def __unicode__(self):
+        return unicode(self.user.get_full_name())
 
 
 class Activity(models.Model):
@@ -50,13 +61,12 @@ class TimesheetEntry(models.Model):
         verbose_name_plural = 'Timesheet Entries'
 
 
-class TrainerCost(models.Model):
-    user = models.OneToOneField(User, related_name='trainer_cost')
-    cost = models.FloatField()
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
 
-    def __unicode__(self):
-        return u'$%.2f' % self.cost
+def delete_user_profile(sender, instance, **kwargs):
+    UserProfile.objects.get(user=instance)
 
-
-for group in 'Trainer', 'Trainee':
-    _ = Group.objects.get_or_create(name=group)
+post_save.connect(create_user_profile, sender=User)
+pre_delete.connect(delete_user_profile, sender=User)

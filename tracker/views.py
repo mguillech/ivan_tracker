@@ -1,5 +1,6 @@
 import json
 import datetime
+import random
 import xlwt
 from operator import itemgetter
 from dateutil import parser as dateutil_parser
@@ -18,7 +19,7 @@ from django.core.serializers import serialize
 from django.views.generic import ListView
 from tracker.forms import UserForm, ActivityForm
 
-from tracker.models import TimesheetEntry, Activity, TrainerCost
+from tracker.models import TimesheetEntry, Activity, UserProfile
 from tracker.utils import to_timestamp
 
 def user_view(request, group):
@@ -28,7 +29,7 @@ def user_view(request, group):
 
 
 class TrainerView(ListView):
-        queryset = Group.objects.get(name='Trainer').user_set.all()
+        queryset = UserProfile.objects.filter(group='Trainer')
         context_object_name = 'trainer_list'
         template_name = 'tracker/parts/trainers_part.html'
 
@@ -38,7 +39,7 @@ class TrainerView(ListView):
 
 
 class TraineeView(ListView):
-    queryset = Group.objects.get(name='Trainee').user_set.all()
+    queryset = UserProfile.objects.filter(group='Trainee')
     context_object_name = 'trainee_list'
     template_name = 'tracker/parts/trainees_part.html'
 
@@ -49,10 +50,7 @@ class TraineeView(ListView):
 
 @login_required
 def home(request):
-    try:
-        group = request.user.groups.get().name
-    except Group.DoesNotExist:
-        group = 'Admin'
+    group = request.user.get_profile().group
     return render_to_response('tracker/home_%s.html' % group.lower(), {'group': group},
         context_instance=RequestContext(request))
 
@@ -84,18 +82,20 @@ def logout(request):
 @login_required
 def get_events(request):
     start, end = request.GET.get('start'), request.GET.get('end')
-    try:
-        group = request.user.groups.get().name
+    group = request.user.get_profile().group
+    if group == 'Admin':
+        kwargs = {}
+    else:
         kwargs = {group.lower(): request.user.get_full_name()}
-    except Group.DoesNotExist:
-        kwargs = {}     # Admins
     if start:
         start = datetime.datetime.fromtimestamp(float(start), utc)
     if end:
         end = datetime.datetime.fromtimestamp(float(end), utc)
     kwargs.update({'start__gte': start, 'end__lte': end})
     entries = [ {'id': entry.pk, 'title': unicode(entry), 'allDay': False, 'start': to_timestamp(entry.start),
-                 'end': to_timestamp(entry.end) }
+                 'end': to_timestamp(entry.end),
+                 'color': 'rgb%s' % UserProfile.objects.get(user__first_name=entry.trainer.split()[0],
+                     user__last_name=entry.trainer.split()[1]).color }
                 for entry in TimesheetEntry.objects.filter(**kwargs) ]
     return HttpResponse(json.dumps(entries), content_type='application/json')
 
@@ -104,7 +104,9 @@ def get_event(request, pk):
     event = get_object_or_404(TimesheetEntry, pk=pk)
     start = to_timestamp(event.start)
     end = to_timestamp(event.end)
-    info = {'id': pk, 'title': unicode(event), 'trainer': event.trainer, 'trainee': event.trainee,
+    trainer = User.objects.get(first_name=event.trainer.split()[0], last_name=event.trainer.split()[1])
+    trainee = User.objects.get(first_name=event.trainee.split()[0], last_name=event.trainee.split()[1])
+    info = {'id': pk, 'title': unicode(event), 'trainer': trainer.pk, 'trainee': trainee.pk,
             'activity': event.activity.pk, 'start': start, 'end': end, 'comment': event.comment }
     return HttpResponse(json.dumps(info), content_type='application/json')
 
@@ -112,7 +114,7 @@ def get_event(request, pk):
 def add_event(request):
     def _add_entry():
         TimesheetEntry.objects.create(trainer=trainer.get_full_name(), trainee=trainee.get_full_name(),
-            trainer_cost=trainer.trainer_cost.cost, activity=activity, start=start, end=end, comment=comment)
+            trainer_cost=trainer.get_profile().cost, activity=activity, start=start, end=end, comment=comment)
 
     def _check_end(should_return=True):
         if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)),
@@ -160,20 +162,21 @@ def add_event(request):
 
 @login_required
 def update_event(request):
+    profile = request.user.get_profile()
     data = request.POST.get('data')
     tz_offset = request.POST.get('tz_offset')
     if data and tz_offset:
         data = json.loads(data)
         input_getter = itemgetter('name', 'value')
         edit = dict(input_getter(i) for i in data)
-        trainee = User.objects.get(pk=edit['trainee'])
+        trainee = UserProfile.objects.get(pk=edit['trainee'])
         activity = Activity.objects.get(pk=edit['activity'])
         start = dateutil_parser.parse('%s %s %s' % (edit['start-date'], edit['start-time'],
                                                     tz_offset)).astimezone(utc)
         end = dateutil_parser.parse('%s %s %s' % (edit['end-date'], edit['end-time'], tz_offset)).astimezone(utc)
         comment = edit['comment']
-        TimesheetEntry.objects.filter(pk=edit['event-pk']).update(trainee=trainee.get_full_name(),
-            trainer_cost=request.user.trainer_cost.cost, activity=activity, start=start, end=end, comment=comment)
+        TimesheetEntry.objects.filter(pk=edit['event-pk']).update(trainee=unicode(trainee),
+            trainer_cost=profile.cost, activity=activity, start=start, end=end, comment=comment)
         return HttpResponse(json.dumps({'status': True, 'msg': 'Event successfully edited.'}),
             content_type='application/json')
     else:
@@ -182,8 +185,8 @@ def update_event(request):
 @login_required
 def get_create_data(request):
     if request.is_ajax():
-        trainees = serialize('json', Group.objects.get(name='Trainee').user_set.all(),
-            fields=('first_name', 'last_name'))
+        trainee_profiles = UserProfile.objects.filter(group='Trainee')
+        trainees = serialize('json', [ p.user for p in trainee_profiles ], fields=('first_name', 'last_name'))
         activities = serialize('json', Activity.objects.all())
         return HttpResponse(json.dumps({'trainees': trainees, 'activities': activities}),
             content_type='application/json')
@@ -192,6 +195,9 @@ def get_create_data(request):
 
 @login_required
 def add_user(request):
+    def _generate_color():
+        return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+
     data = request.POST.get('data')
     if data:
         data = json.loads(data)
@@ -202,13 +208,16 @@ def add_user(request):
         if form.is_valid() and group:
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
-            user.save()
-            Group.objects.get(name=group.capitalize()).user_set.add(user)
             cost = create.get('cost')
+            user.save()
+            profile = user.get_profile()
+            profile.group = group.capitalize()
             if cost:    # Trainer
-                TrainerCost.objects.create(user=user, cost=float(cost))
+                profile.cost = cost
+            profile.color = str(_generate_color())
+            profile.save()
             status = True
-            message = '%s successfully created.' % group.capitalize()
+            message = '%s successfully created.' % profile.group
         else:
             status = False
             message = 'There was an error while creating your %s user.' % group
@@ -218,12 +227,13 @@ def add_user(request):
 
 @login_required
 def get_user(request, pk):
-    user = get_object_or_404(User, pk=pk)
+    profile = get_object_or_404(UserProfile, pk=pk)
+    user = profile.user
     info = {'pk': user.pk, 'username': user.username, 'first_name': user.first_name,
             'last_name': user.last_name, 'email': user.email,
-            'group': unicode(user.groups.get())}
-    if unicode(user.groups.get()).lower() == 'trainer':
-        info.update({'cost': user.trainer_cost.cost})
+            'group': profile.group}
+    if profile.group.lower() == u'trainer':
+        info.update({'cost': profile.cost})
     return HttpResponse(json.dumps(info), content_type='application/json')
 
 @login_required
@@ -240,7 +250,7 @@ def update_user(request):
         input_getter = itemgetter('name', 'value')
         edit = dict(input_getter(i) for i in data)
         user = get_object_or_404(User, pk=edit['user-pk'])
-        group = user.groups.get()
+        profile = user.get_profile()
         form = UserForm(edit, instance=user)
         if 'password' in form.errors:
             form.errors.pop('password')
@@ -251,13 +261,14 @@ def update_user(request):
                 user.set_password(password)
             user.save()
             cost = edit.get('cost')
-            if cost and group.name == 'Trainer':    # Trainer
-                _ = TrainerCost.objects.filter(user=user).update(cost=float(cost))
+            if cost and profile.group == 'Trainer':    # Trainer
+                profile.cost = cost
+            profile.save()
             status = True
-            message = u'%s successfully updated.' % group
+            message = u'%s successfully updated.' % profile.group.capitalize()
         else:
             status = False
-            message = u'There was an error while updating your %s user.' % group
+            message = u'There was an error while updating your %s user.' % profile.group
         return HttpResponse(json.dumps({'status': status, 'msg': message}), content_type='application/json')
     else:
         return HttpResponseBadRequest()

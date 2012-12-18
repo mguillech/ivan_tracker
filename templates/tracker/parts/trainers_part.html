@@ -12,11 +12,11 @@
     <tbody>
     {% for trainer in trainer_list %}
         <tr>
-            <td><a href="#" class="edit-user" data-pk="{{ trainer.pk }}" data-group="trainers">{{ trainer.username }}</a></td>
-            <td>{{ trainer.first_name }}</td>
-            <td>{{ trainer.last_name }}</td>
-            <td>{{ trainer.email }}</td>
-            <td>{{ trainer.trainer_cost|default:'NA' }}</td>
+            <td><a href="#" class="edit-user" data-pk="{{ trainer.pk }}" data-group="trainers">{{ trainer.user.username }}</a></td>
+            <td>{{ trainer.user.first_name }}</td>
+            <td>{{ trainer.user.last_name }}</td>
+            <td>{{ trainer.user.email }}</td>
+            <td>{{ trainer.cost|floatformat:2|default:'NA' }}</td>
         </tr>
     {% endfor %}
     </tbody>
