@@ -50,7 +50,7 @@ class TraineeView(ListView):
 
 @login_required
 def home(request):
-    group = request.user.get_profile().group
+    group = request.user.get_profile().group or not 'Admin'
     return render_to_response('tracker/home_%s.html' % group.lower(), {'group': group},
         context_instance=RequestContext(request))
 
