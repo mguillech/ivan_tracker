@@ -83,10 +83,10 @@ def logout(request):
 def get_events(request):
     start, end = request.GET.get('start'), request.GET.get('end')
     group = request.user.get_profile().group
-    if group == 'Admin':
-        kwargs = {}
-    else:
+    if group:
         kwargs = {group.lower(): request.user.get_full_name()}
+    else:
+        kwargs = {}
     if start:
         start = datetime.datetime.fromtimestamp(float(start), utc)
     if end:

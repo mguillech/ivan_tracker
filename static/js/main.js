@@ -102,6 +102,10 @@ function create_alert(title, body) {
     return alert_div;
 }
 
+$('#createModal').live('shown', function() {
+    $('input:not([type=hidden])').val('');
+});
+
 $('.modal').bind('close', function() {
     modal = $(this);
     modal.modal('hide');
