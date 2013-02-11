@@ -27,6 +27,18 @@
                 }
             });
 
+            $('#create-event-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
+
+            $('#edit-event-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
+
             $('.datepicker').datepicker();
         });
 
@@ -60,10 +72,15 @@
     <div class="container">
         <h1>Welcome, {{ user }} ({{ group }})</h1>
         <div id='loading show-calendar' style='display:none'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div id='create-admin-event-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Create</button></div>
         <div id='calendar'></div>
     </div>
+    {% include 'tracker/admin_event_modals.html' %}
 {% endblock %}
 {% block extra_js_body %}
     <script src="{{ STATIC_URL }}js/fullcalendar.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.timepicker.js"></script>
+    <script src="{{ STATIC_URL }}js/datepair.js"></script>
     <script src="{{ STATIC_URL }}js/jquery.validate.js"></script>
+    <script src="{{ STATIC_URL }}js/additional-methods.js"></script>
 {% endblock %}

@@ -1,4 +1,8 @@
 {% extends 'tracker/home_admin.html' %}
+{% block extra_css %}
+    {{ block.super }}
+    <link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}css/jquery.rating.css' />
+{% endblock %}
 {% block extra_js %}
     <script type='text/javascript'>
 
@@ -8,7 +12,23 @@
                     $(form).trigger('ajaxSubmit');
                 }
             });
+
+            $('#create-category-form').validate({
+                submitHandler: function(form) {
+                    $(form).trigger('ajaxSubmit');
+                }
+            });
+
             get_data('#activities', 'activities');
+
+            $('.mystar').rating({
+                callback: function(value, link) {
+                    if (value == undefined)
+                        delete Tracker.rating;
+                    else
+                        Tracker.rating = link.text;
+                }
+            });
         });
 
     </script>
@@ -16,8 +36,14 @@
 {% block content %}
     <div class="container">
         <div id='loading show-activities' style='display:none'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
-        <div id='create-activity-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createModal'>Add Activity</button></div>
+        <div id='create-category-btn'><button class='btn btn-primary' data-toggle='modal' data-target='#createCategoryModal'>Add Category</button></div>
+        <div id='create-activity-btn'><button class='create-activity-btn btn btn-primary' data-toggle='modal' data-target='#createModal'>Add Activity</button></div>
         <div id='activities'></div>
     </div>
     {% include 'tracker/add_activity_modal.html' %}
+{% endblock %}
+{% block extra_js_body %}
+    {{ block.super }}
+    <script src="{{ STATIC_URL }}js/jquery.MetaData.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.rating.js"></script>
 {% endblock %}

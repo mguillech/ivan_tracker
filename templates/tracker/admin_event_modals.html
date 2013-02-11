@@ -5,21 +5,12 @@
         <h3 id="createModalLabel">Create Event</h3>
     </div>
     <div class="modal-body">
-        <div class='loading loading-create create-event'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class='loading loading-create create-admin-event'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
         <div class="modal-form">
             <form id="create-event-form" method="POST" action="{% url add-event %}">
                 <fieldset>
                     {% csrf_token %}
                     <legend>Please fill out the information below</legend>
-                    <label for="add-trainee">Trainee</label>
-                    <select id="add-trainee" name="trainee" required></select>
-                    <label for="add-activity-div">Activity</label>
-                    <div id="add-activity-div">
-                        <div class="activity">
-                            <select class="add-activity" name="activity" required></select>
-                            <img class="add-activity-link" src="{{ STATIC_URL }}img/icon_addlink.gif" width="13px" height="13px" />
-                        </div>
-                    </div>
                     <p id="create-activity-time" class="datepair" data-language="javascript">
                         <label for="add_start">Activity start time</label>
                         <input id="add_start" name="start-date" type="text" class="date start" data-nextfocus="#create-event-form .time.start" required>
@@ -31,8 +22,8 @@
                         <input id="repeat" name="repeat" type="text" class="number end-group"/>
                         <span>&nbsp;week(s)</span>
                     </p>
-                    <label for="add-comment">Comment (optional)</label>
-                    <textarea id="add-comment" name="comment"></textarea>
+                    <label for="add-comment">Comment</label>
+                    <textarea id="add-comment" name="comment" required></textarea>
                 </fieldset>
             </form>
         </div>
@@ -57,10 +48,6 @@
                     {% csrf_token %}
                     <input id="event-pk" type="hidden" name="event-pk" />
                     <legend>Please fill out the information below</legend>
-                    <label for="edit-trainee">Trainee</label>
-                    <select id="edit-trainee" name="trainee" required></select>
-                    <label for="edit-activity">Activity</label>
-                    <select id="edit-activity" name="activity" required></select>
                     <p id="edit-activity-time" class="datepair" data-language="javascript">
                         <label for="edit-start-date">Activity start time</label>
                         <input id="edit-start-date" name="start-date" type="text" class="date start" data-nextfocus="#edit-event-form .time.start" required>
@@ -69,8 +56,8 @@
                         <input id="edit-end-date" name="end-date" type="text" class="date end" data-nextfocus="#edit-event-form .time.end" required>
                         <input id="edit-end-time" name="end-time" type="text" class="time end required checknegativedt" autocomplete="off" required>
                     </p>
-                    <label for="edit-comment">Comment (optional)</label>
-                    <textarea id="edit-comment" name="comment"></textarea>
+                    <label for="edit-comment">Comment</label>
+                    <textarea id="edit-comment" name="comment" required></textarea>
                 </fieldset>
             </form>
         </div>

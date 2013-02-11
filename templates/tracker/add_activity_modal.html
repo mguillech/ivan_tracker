@@ -5,13 +5,29 @@
         <h3 id="createModalLabel">Create Activity</h3>
     </div>
     <div class="modal-body">
-        <div class='loading create-activity'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class='loading loading-create create-activity'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
         <div class="modal-form">
             <form id="create-activity-form" method="POST" action="{% url add-activity %}">
                 <fieldset>
                     {% csrf_token %}
                     <legend>Please fill out the information below</legend>
                     {{ form.as_p }}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Please rate this activity (hover to see description)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input name="rating" type="radio" class="mystar" title="Bad" value="Bad" required/></td>
+                                <td><input name="rating" type="radio" class="mystar" title="Below average" value="Below Average"/></td>
+                                <td><input name="rating" type="radio" class="mystar" title="Average" value="Average"/></td>
+                                <td><input name="rating" type="radio" class="mystar" title="Good" value="Good"/></td>
+                                <td><input name="rating" type="radio" class="mystar" title="Excellent" value="Excellent"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </fieldset>
             </form>
         </div>
@@ -19,5 +35,29 @@
     <div class="modal-footer">
         <button class="btn" data-dismiss="modal">Close</button>
         <button id="create-activity" class="btn btn-primary">Create activity</button>
+    </div>
+</div>
+
+<div id="createCategoryModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <div id="create-category-alert"></div>
+        <h3 id="createCategoryModalLabel">Create Category</h3>
+    </div>
+    <div class="modal-body">
+        <div class='loading loading-create create-category'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class="modal-form">
+            <form id="create-category-form" method="POST" action="{% url add-category %}">
+                <fieldset>
+                    {% csrf_token %}
+                    <legend>Please fill out the information below</legend>
+                    {{ category_form.as_p }}
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal">Close</button>
+        <button id="create-category" class="btn btn-primary">Create category</button>
     </div>
 </div>

@@ -1,3 +1,5 @@
+var Tracker = {};
+
 function _create_option(value, html) {
     var option = $('<option/>');
     option.val(value);
@@ -5,18 +7,30 @@ function _create_option(value, html) {
     return option;
 }
 
-function _append_user(select, obj) {
-    for (i = 0; i < obj.length; i++) {
-        full_name = obj[i].fields.first_name + ' ' + obj[i].fields.last_name;
-        option = _create_option(obj[i].pk, full_name);
+function append_trainees(select) {
+    select.empty();
+    for (i = 0; i < Tracker.trainees.length; i++) {
+        full_name = Tracker.trainees[i].fields.first_name + ' ' + Tracker.trainees[i].fields.last_name;
+        option = _create_option(Tracker.trainees[i].pk, full_name);
         select.append(option);
     }
 }
 
-function _append_activity(select, obj) {
-    for (i = 0; i < obj.length; i++) {
-        name = obj[i].fields.name;
-        option = _create_option(obj[i].pk, name);
+function append_activities(select) {
+    select.empty();
+    for (i = 0; i < Tracker.activities.length; i++) {
+        name = Tracker.activities[i].fields.name;
+        option = _create_option(Tracker.activities[i].pk, name);
+        select.append(option);
+    }
+}
+
+
+function append_categories(select) {
+    select.empty();
+    for (i = 0; i < Tracker.categories.length; i++) {
+        name = Tracker.categories[i].fields.name;
+        option = _create_option(Tracker.categories[i].pk, name);
         select.append(option);
     }
 }
@@ -27,12 +41,27 @@ $('#create-event-btn').bind('click', function() {
         method: 'POST',
         success: function(data) {
             $('.loading.create-event').hide();
-            var trainees = $.parseJSON(data.trainees);
-            var activities = $.parseJSON(data.activities);
-            $('#add-trainee').empty();
-            $('#add-activity').empty();
-            _append_user($('#add-trainee'), trainees);
-            _append_activity($('#add-activity'), activities);
+            Tracker.trainees = $.parseJSON(data.trainees);
+            Tracker.activities = $.parseJSON(data.activities);
+            append_trainees($('#add-trainee'));
+            append_activities($('.add-activity'));
+        }
+    });
+    $('input[type=text]').val('');
+});
+
+$('#create-admin-event-btn').bind('click', function() {
+    $('textarea').val('');
+});
+
+$('#create-activity-btn').bind('click', function() {
+    $.ajax({
+        url: '/tracker/get-create-data/',
+        method: 'POST',
+        success: function(data) {
+            $('.loading.create-activity').hide();
+            Tracker.categories = $.parseJSON(data.categories);
+            append_categories($('#id_category'));
         }
     });
     $('input[type=text]').val('');
@@ -164,7 +193,13 @@ $('#create-activity').click(function() {
 $('#create-activity-form').bind('ajaxSubmit', function() {
     form = $(this);
     csrftoken = $('input[name=csrfmiddlewaretoken]').val();
-    data = JSON.stringify(form.serializeArray().slice(1));
+    form_array = form.serializeArray().slice(1);
+    form_array[form_array.length-1].value = Tracker.rating;
+    if (Tracker.rating == undefined) {
+        $('#create-activity-form').validate().showErrors({'rating': 'This field is required'});
+        return false;
+    }
+    data = JSON.stringify(form_array);
     $.ajax({
         url: form.attr('action'),
         type: form.attr('method'),
@@ -180,6 +215,34 @@ $('#create-activity-form').bind('ajaxSubmit', function() {
             } else {
                 msg = response.msg;
                 $('#create-activity-alert').html(create_alert('Create activity error!', msg));
+            }
+        }
+    });
+    return false;
+});
+
+$('#create-category').click(function() {
+    $('#create-category-form').submit();
+});
+
+$('#create-category-form').bind('ajaxSubmit', function() {
+    form = $(this);
+    csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+    data = JSON.stringify(form.serializeArray().slice(1));
+    $.ajax({
+        url: form.attr('action'),
+        type: form.attr('method'),
+        data: {'csrfmiddlewaretoken': csrftoken, 'data': data},
+        beforeSend: function() {
+            $('.loading.create-category').show();
+        },
+        success: function(response) {
+            $('.loading.create-category').hide();
+            if (response.status != false) {
+                $('#createCategoryModal').trigger('close');
+            } else {
+                msg = response.msg;
+                $('#create-category-alert').html(create_alert('Create category error!', msg));
             }
         }
     });
@@ -232,12 +295,12 @@ function editEventModal(event, callback) {
         method: 'POST',
         success: function(data) {
             $('.loading.edit-event').hide();
-            var trainees = $.parseJSON(data.trainees);
-            var activities = $.parseJSON(data.activities);
+            Tracker.trainees = $.parseJSON(data.trainees);
+            Tracker.activities = $.parseJSON(data.activities);
             $('#edit-trainee').empty();
             $('#edit-activity').empty();
-            _append_user($('#edit-trainee'), trainees);
-            _append_activity($('#edit-activity'), activities);
+            append_trainees($('#edit-trainee'));
+            append_activities($('#edit-activity'));
             callback(event);
         }
     });
@@ -369,4 +432,35 @@ $('#edit-user-form').bind('ajaxSubmit', function() {
         }
     });
     return false;
+});
+
+$('.add-activity-link').live('click', function() {
+   if (Tracker.activities.length == 1) {
+       $('#create-event-alert').html(create_alert('Create event error!',
+           'You cannot add more activities since you have only one in the system'));
+       return false;
+   }
+   var add_activity_div = $('#add-activity-div');
+   var activities = add_activity_div.find('.activity');
+   var last_activity = add_activity_div.find('.activity').last();
+   last_activity.find('img, div').remove();
+   var new_activity = last_activity.clone()
+       .append('<div class="delete-activity-div"/>')
+       .append('<img class="add-activity-link" src="/static/img/icon_addlink.gif" width="13px" height="13px" />');
+    var new_select = new_activity.find('select');
+   append_activities(new_select);
+   add_activity_div.append(new_activity);
+   return true;
+});
+
+$('.delete-activity-div').live('click', function() {
+    var add_activity_div = $('#add-activity-div');
+    var activities = add_activity_div.find('.activity');
+    var last_activity = activities.last();
+    prev_to_last_activity = last_activity.prev();
+    if (activities.length > 2) {
+        prev_to_last_activity.append('<div class="delete-activity-div"/>');
+    }
+    prev_to_last_activity.append('<img class="add-activity-link" src="/static/img/icon_addlink.gif" width="13px" height="13px" />');
+    last_activity.remove();
 });

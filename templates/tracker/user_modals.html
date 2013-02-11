@@ -5,7 +5,7 @@
         <h3 id="createModalLabel">Create {{ group }}</h3>
     </div>
     <div class="modal-body">
-        <div class='loading create-user'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
+        <div class='loading loading-create create-user'><img src="{{ STATIC_URL }}img/loading.gif"/></div>
         <div class="modal-form">
             <form id="create-user-form" method="POST" action="{% url add-user %}">
                 <fieldset>
@@ -14,7 +14,7 @@
                     <legend>Please fill out the information below</legend>
                     {{ form.as_p }}
                     {% if group.lower == 'trainer' %}
-                        <label for="cost">Cost per hour</label>
+                        <label for="add-cost">Cost per hour</label>
                         <input id="add-cost" type="text" name="cost" class="required number" required />
                     {% endif %}
                 </fieldset>

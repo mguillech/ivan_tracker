@@ -3,12 +3,16 @@
     <thead>
     <tr>
         <th>Name</th>
+        <th>Category</th>
+        <th>Rating</th>
     </tr>
     </thead>
     <tbody>
     {% for activity in activity_list %}
         <tr>
             <td>{{ activity.name }}</td>
+            <td>{{ activity.category }}</td>
+            <td>{{ activity.rating }}</td>
         </tr>
     {% endfor %}
     </tbody>

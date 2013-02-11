@@ -6,7 +6,7 @@ from operator import itemgetter
 from dateutil import parser as dateutil_parser
 from django.contrib.auth import login as login_function, logout as logout_function, authenticate
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.contrib.auth.views import logout_then_login
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -17,9 +17,9 @@ from django.utils.decorators import method_decorator
 from django.utils.timezone import utc
 from django.core.serializers import serialize
 from django.views.generic import ListView
-from tracker.forms import UserForm, ActivityForm
+from tracker.forms import UserForm, ActivityForm, CategoryForm
 
-from tracker.models import TimesheetEntry, Activity, UserProfile
+from tracker.models import TimesheetEntry, Activity, UserProfile, Category
 from tracker.utils import to_timestamp
 
 def user_view(request, group):
@@ -81,22 +81,32 @@ def logout(request):
 
 @login_required
 def get_events(request):
+    def _get_entry_color(entry):
+        if entry.admin_event:
+            color = 'rgb(23,23,23)'
+        else:
+            color = 'rgb%s' % UserProfile.objects.get(user__first_name=entry.trainer.split()[0],
+                                              user__last_name=entry.trainer.split()[1]).color
+        return color
+
     start, end = request.GET.get('start'), request.GET.get('end')
     group = request.user.get_profile().group
+    kwargs = {}
     if group:
-        kwargs = {group.lower(): request.user.get_full_name()}
+        if group.lower() == 'trainer':
+            args = Q(admin_event=True) | Q(trainer=request.user.get_full_name())
+        else:
+            args = Q(trainee=request.user.get_full_name())
     else:
-        kwargs = {}
+        args = Q()
     if start:
         start = datetime.datetime.fromtimestamp(float(start), utc)
     if end:
         end = datetime.datetime.fromtimestamp(float(end), utc)
     kwargs.update({'start__gte': start, 'end__lte': end})
-    entries = [ {'id': entry.pk, 'title': unicode(entry), 'allDay': False, 'start': to_timestamp(entry.start),
-                 'end': to_timestamp(entry.end),
-                 'color': 'rgb%s' % UserProfile.objects.get(user__first_name=entry.trainer.split()[0],
-                     user__last_name=entry.trainer.split()[1]).color }
-                for entry in TimesheetEntry.objects.filter(**kwargs) ]
+    entries = [{'id': entry.pk, 'title': unicode(entry), 'allDay': False, 'start': to_timestamp(entry.start),
+                'end': to_timestamp(entry.end), 'color': _get_entry_color(entry)}
+                for entry in TimesheetEntry.objects.filter(args, **kwargs)]
     return HttpResponse(json.dumps(entries), content_type='application/json')
 
 @login_required
@@ -113,50 +123,67 @@ def get_event(request, pk):
 @login_required
 def add_event(request):
     def _add_entry():
-        TimesheetEntry.objects.create(trainer=trainer.get_full_name(), trainee=trainee.get_full_name(),
-            trainer_cost=trainer.get_profile().cost, activity=activity, start=start, end=end, comment=comment)
+        kwargs = dict(start=start, end=end, comment=comment)
+        if not admin:
+            kwargs.update(trainer=trainer.get_full_name(), trainee=trainee.get_full_name(),
+                          trainer_cost=trainer.get_profile().cost)
+        else:
+            kwargs.update(admin_event=True)
+        entry = TimesheetEntry.objects.create(**kwargs)
+        if not admin:
+            for activity in activities:
+                entry.activity.add(activity)
 
-    def _check_end(should_return=True):
-        if TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)),
-            trainer=trainer.get_full_name()):
-            if should_return:
-                return HttpResponse(json.dumps({'status': False,
-                        'msg': 'Start or end date/time overlaps an existing event. Try setting other dates/times.'}),
-                    content_type='application/json')
-            return should_return
+    def _check_end():
+        existing_entries = TimesheetEntry.objects.filter(Q(start__range=(start, end)) | Q(end__range=(start, end)))
+        for existing_entry in existing_entries:
+            if existing_entry.admin_event or (not admin and request.user.get_full_name() == existing_entry.trainer):
+                    return False
+        return True
 
+    admin = request.user.is_superuser
     data = request.POST.get('data')
     tz_offset = request.POST.get('tz_offset')
     if data and tz_offset:
         data = json.loads(data)
         input_getter = itemgetter('name', 'value')
-        create = dict(input_getter(i) for i in data)
-        trainer = request.user
-        trainee = User.objects.get(pk=create['trainee'])
-        activity = Activity.objects.get(pk=create['activity'])
+        create = dict(input_getter(i) for i in data if i['name'] != 'activity')
+        repeat = None
+        if not admin:
+            create['activity'] = [int(i['value']) for i in data if i['name'] == 'activity']
+            trainer = request.user
+            trainee = User.objects.get(pk=create['trainee'])
+            activities = Activity.objects.in_bulk(create['activity']).values()
+            repeat = create.get('repeat')
         start = original_start = dateutil_parser.parse('%s %s %s' % (create['start-date'], create['start-time'],
                                                     tz_offset)).astimezone(utc)
         end = original_end = dateutil_parser.parse('%s %s %s' % (create['end-date'], create['end-time'],
                                                   tz_offset)).astimezone(utc)
-        repeat = create.get('repeat')
         comment = create['comment']
         msg = 'Event(s) created successfully.'
-        _check_end()
+        if not _check_end():
+            return HttpResponse(json.dumps({'status': False,
+                                            'msg': 'The event overlaps an existing event (yours or set by the admin)'}),
+                                            content_type='application/json')
         _add_entry()
         if repeat:
             if not repeat.isdigit():
-                return HttpResponse(json.dumps({'status': False, 'msg': 'Supplied number of weeks is invalid.'}),
-                    content_type='application/json')
+                return HttpResponse(json.dumps({'status': False,
+                                                'msg': 'Supplied number of weeks is invalid.'}),
+                                                content_type='application/json')
             repeat = int(repeat)
             days = [ i for i in xrange(7, repeat * 7 + 1,  7) ]
+            event_overlapped = False
             for day in days:
                 start = original_start + datetime.timedelta(days=day)
                 end = original_end + datetime.timedelta(days=day)
-                if _check_end(False) is False:
-                    msg += ' However, one of the events overlapped an existing one and it could not be created again.'
-                _add_entry()
-        return HttpResponse(json.dumps({'status': True, 'msg': msg}),
-            content_type='application/json')
+                if not _check_end():
+                    event_overlapped = True
+                else:
+                    _add_entry()
+            if event_overlapped:
+                msg += ' However, one of the events overlapped an existing one and it could not be created again.'
+        return HttpResponse(json.dumps({'status': True, 'msg': msg}), content_type='application/json')
     else:
         return HttpResponseBadRequest
 
@@ -188,7 +215,8 @@ def get_create_data(request):
         trainee_profiles = UserProfile.objects.filter(group='Trainee')
         trainees = serialize('json', [ p.user for p in trainee_profiles ], fields=('first_name', 'last_name'))
         activities = serialize('json', Activity.objects.all())
-        return HttpResponse(json.dumps({'trainees': trainees, 'activities': activities}),
+        categories = serialize('json', Category.objects.all())
+        return HttpResponse(json.dumps({'trainees': trainees, 'activities': activities, 'categories': categories}),
             content_type='application/json')
     else:
         return HttpResponseBadRequest
@@ -196,7 +224,12 @@ def get_create_data(request):
 @login_required
 def add_user(request):
     def _generate_color():
-        return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+        color = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+        while color != (23, 23, 23):
+            color = _generate_color()
+            if color != (23, 23, 23):
+                break
+        return color
 
     data = request.POST.get('data')
     if data:
@@ -284,7 +317,9 @@ def trainee_list(request):
 @login_required
 def activity_list(request):
     form = ActivityForm()
-    return render_to_response('tracker/activities.html', {'form': form}, context_instance=RequestContext(request))
+    category_form = CategoryForm()
+    return render_to_response('tracker/activities.html', {'form': form, 'category_form': category_form},
+        context_instance=RequestContext(request))
 
 @login_required
 def activity_add(request):
@@ -295,12 +330,33 @@ def activity_add(request):
         create = dict(input_getter(i) for i in data)
         form = ActivityForm(create)
         if form.is_valid():
-            _ = form.save()
+            activity = form.save(commit=False)
+            activity.rating = create['rating']
+            activity.save()
             status = True
             message = 'Activity successfully created.'
         else:
             status = False
             message = 'There was an error while creating your activity.'
+        return HttpResponse(json.dumps({'status': status, 'msg': message}), content_type='application/json')
+    else:
+        return HttpResponseBadRequest()
+
+@login_required
+def category_add(request):
+    data = request.POST.get('data')
+    if data:
+        data = json.loads(data)
+        input_getter = itemgetter('name', 'value')
+        create = dict(input_getter(i) for i in data)
+        form = CategoryForm(create)
+        if form.is_valid():
+            _ = form.save()
+            status = True
+            message = 'Category successfully created.'
+        else:
+            status = False
+            message = 'There was an error while creating your category. Maybe the category already exists?'
         return HttpResponse(json.dumps({'status': status, 'msg': message}), content_type='application/json')
     else:
         return HttpResponseBadRequest()

@@ -16,10 +16,33 @@
     float: left;
 }
 
-#create-user-btn, #create-activity-btn, #download-report-btn {
+#create-user-btn, #create-activity-btn, #create-category-btn, #download-report-btn {
     margin: 10px;
 }
 
-.loading.create-user, .loading.create-activity {
+.loading.create-category, .loading.create-user, .loading.create-admin-event {
     display: none;
+}
+
+.add-activity-link, .delete-activity-div {
+    vertical-align: baseline;
+    cursor: pointer;
+    margin: 2px;
+}
+
+.activity {
+    display: block;
+}
+
+button.create-activity-btn {
+    width: 113px;
+    height: 30px;
+}
+
+.delete-activity-div {
+    display: inline-block;
+    background: url(/static/img/delete.gif) no-repeat 0 -17px;
+    height: 15px;
+    width: 15px;
+    padding-right: 5px;
 }
